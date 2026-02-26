@@ -1,0 +1,38 @@
+name: Ranking CNB 2000k Automático
+
+on:
+  schedule:
+    - cron: '0 1 * * *' 
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install libs
+        run: pip install requests pandas openpyxl
+
+      - name: Run Script
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+        run: python ranking.py
+
+      - name: Save Result
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "Robo CNB 2k"
+          git config --global user.email "bot@github.com"
+          git add Ranking_CNB_2000km_2026_km_+_alt.xlsx
+          git commit -m "Ranking 2k atualizado" || exit 0
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
