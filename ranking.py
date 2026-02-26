@@ -6,7 +6,7 @@ import os
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
 REFRESH_TOKEN = os.environ.get('REFRESH_TOKEN')
-CLUB_ID = '1921916' 
+CLUB_ID = '1976744' 
 NOME_ARQUIVO = 'Ranking_CNB_2000km_2026_km_+_alt.xlsx'
 
 def obter_access_token():
