@@ -2,7 +2,7 @@ name: Ranking CNB 2000k Automático
 
 on:
   schedule:
-    - cron: '0 1 * * *' 
+    - cron: '59 2 * * *' 
   workflow_dispatch: 
 
 jobs:
