@@ -7,7 +7,7 @@ CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
 REFRESH_TOKEN = os.environ.get('REFRESH_TOKEN')
 CLUB_ID = '1976744' 
-NOME_ARQUIVO = 'Ranking_CNB_2000km_2026_km_+_alt.xlsx'
+NOME_ARQUIVO = 'Ranking_CNB_2000km_2026.xlsx'
 
 def obter_access_token():
     payload = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'refresh_token': REFRESH_TOKEN, 'grant_type': 'refresh_token'}
