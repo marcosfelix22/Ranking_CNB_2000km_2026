@@ -36,19 +36,25 @@ if os.path.exists(NOME_ARQUIVO):
                 if 'Altimetria (m)' in df_ranking.columns and df_ranking['Altimetria (m)'].dtype == object:
                     df_ranking['Altimetria (m)'] = df_ranking['Altimetria (m)'].str.replace(' m', '', regex=False).str.replace('.', '', regex=False).astype(float)
                 
+                # Trata a nova coluna de Treinos na planilha antiga
+                if 'Treinos' in df_ranking.columns:
+                    df_ranking['Treinos'] = df_ranking['Treinos'].fillna(0).astype(int)
+                else:
+                    df_ranking['Treinos'] = 0
+                
                 df_ranking = df_ranking.set_index('Atleta').groupby(level=0).sum()
             else:
-                # Se não tem a coluna Atleta, recomeça a tabela
-                df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)']).set_index('Atleta')
+                # Se não tem a coluna Atleta, recomeça a tabela com as 3 colunas de dados
+                df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)', 'Treinos']).set_index('Atleta')
 
             df_historico = pd.read_excel(reader, sheet_name='IDs_Processados')
             ids_ja_somados = set(df_historico['id'].astype(str).tolist())
     except Exception as e:
         print(f"Erro ao ler planilha, criando nova: {e}")
-        df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)']).set_index('Atleta')
+        df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)', 'Treinos']).set_index('Atleta')
         ids_ja_somados = set()
 else:
-    df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)']).set_index('Atleta')
+    df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)', 'Treinos']).set_index('Atleta')
     ids_ja_somados = set()
 
 # 2. Puxar do Strava
@@ -65,17 +71,25 @@ if access_token:
                 dist_km = act.get('distance', 0) / 1000
                 alt = act.get('total_elevation_gain', 0)
                 if dist_km > 0:
-                    if nome not in df_ranking.index: df_ranking.loc[nome] = [0.0, 0.0]
+                    if nome not in df_ranking.index: 
+                        # Inicializa KM Total, Altimetria e Treinos
+                        df_ranking.loc[nome] = [0.0, 0.0, 0]
+                    
                     df_ranking.at[nome, 'KM Total'] += dist_km
                     df_ranking.at[nome, 'Altimetria (m)'] += alt
+                    df_ranking.at[nome, 'Treinos'] = int(df_ranking.at[nome, 'Treinos']) + 1 # Incrementa o treino
                     ids_ja_somados.add(id_unico)
 
 # 3. Ordenar e Salvar
+df_ranking = df_ranking.groupby(level=0).sum()
 df_ranking = df_ranking.sort_values(by='KM Total', ascending=False)
+
 df_visual = df_ranking.reset_index().copy()
 df_visual['KM Total'] = df_visual['KM Total'].apply(formatar_km)
 df_visual['Altimetria (m)'] = df_visual['Altimetria (m)'].apply(formatar_alt)
+df_visual['Treinos'] = df_visual['Treinos'].astype(int) # Garante que fique salvo formatado como inteiro
 
 with pd.ExcelWriter(NOME_ARQUIVO) as writer:
     df_visual.to_excel(writer, sheet_name='Ranking', index=False)
     pd.DataFrame(list(ids_ja_somados), columns=['id']).to_excel(writer, sheet_name='IDs_Processados', index=False)
+print("Sincronização de 2000km concluída com sucesso!")
