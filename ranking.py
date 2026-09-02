@@ -121,29 +121,26 @@ access_token = obter_access_token()
 
 if access_token:
     headers = {'Authorization': f'Bearer {access_token}'}
-    total_atividades_encontradas = 0
+    
+    # Teste A: Verificar se a conta enxerga seus clubes e qual o ID correto
+    res_clubes = requests.get("https://www.strava.com/api/v3/athlete/clubs", headers=headers)
+    print(f"--- DIAGNÓSTICO DE CLUBES DA CONTA ---")
+    if res_clubes.status_code == 200:
+        clubes = res_clubes.json()
+        print("Clubes vinculados à sua conta:")
+        for c in clubes:
+            print(f"  -> Nome: {c.get('name')} | ID REAL: {c.get('id')}")
+    else:
+        print(f"Erro ao listar clubes do atleta: {res_clubes.status_code} - {res_clubes.text}")
 
-    for pagina in range(1, 11):
-        url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
-        resposta = requests.get(
-            url, 
-            headers=headers, 
-            params={'per_page': 200, 'page': pagina}
-        )
-        
-        if resposta.status_code != 200:
-            print(f"Erro na API do Strava (Status {resposta.status_code}): {resposta.text}")
-            break
-            
+    # Teste B: Tentar consultar as atividades do clube configurado
+    print(f"\n--- CONSULTANDO ATIVIDADES DO CLUBE {CLUB_ID} ---")
+    url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
+    resposta = requests.get(url, headers=headers, params={'per_page': 200, 'page': 1})
+    
+    if resposta.status_code == 200:
         atividades = resposta.json()
-        
-        if not atividades or not isinstance(atividades, list):
-            print(f"Nenhuma atividade retornada na página {pagina}.")
-            break
-
-        print(f"Página {pagina}: {len(atividades)} atividades encontradas no Strava.")
-        total_atividades_encontradas += len(atividades)
-
+        print(f"Sucesso! Atividades encontradas: {len(atividades)}")
         for act in atividades:
             dist = act.get('distance', 0)
             elapsed = act.get('elapsed_time', 0)
@@ -164,8 +161,8 @@ if access_token:
                     df_ranking.at[nome, 'Altimetria (m)'] += alt
                     df_ranking.at[nome, 'Treinos'] = int(df_ranking.at[nome, 'Treinos']) + 1
                     ids_ja_somados.add(id_unico)
-
-    print(f"Total geral de atividades processadas nesta execução: {total_atividades_encontradas}")
+    else:
+        print(f"Erro na API do Strava (Status {resposta.status_code}): {resposta.text}")
 else:
     print("Erro: Falha ao obter access_token do Strava.")
 
