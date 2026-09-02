@@ -118,48 +118,49 @@ else:
 
 # 2. Puxar do Strava
 
+# 2. Puxar novas atividades do Strava
 access_token = obter_access_token()
 
 if access_token:
-
     for pagina in range(1, 11):
-
         url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
-
-        atividades = requests.get(url, headers={'Authorization': f'Bearer {access_token}'}, params={'per_page': 200, 'page': pagina}).json()
-
-        if not atividades or 'errors' in atividades or len(atividades) == 0: break
+        resposta = requests.get(
+            url, 
+            headers={'Authorization': f'Bearer {access_token}'}, 
+            params={'per_page': 200, 'page': pagina}
+        )
+        
+        if resposta.status_code != 200:
+            print(f"Erro ao acessar API do Strava: Status {resposta.status_code}")
+            print(f"Resposta da API: {resposta.text}")
+            break
+            
+        atividades = resposta.json()
+        if not atividades or isinstance(atividades, dict) and 'errors' in atividades:
+            break
 
         for act in atividades:
-
-            id_unico = f"{act.get('distance')}_{act.get('elapsed_time')}_{act.get('athlete', {}).get('lastname')}"
+            dist = act.get('distance', 0)
+            elapsed = act.get('elapsed_time', 0)
+            lastname = act.get('athlete', {}).get('lastname', '')
+            id_unico = f"{dist}_{elapsed}_{lastname}"
 
             if id_unico not in ids_ja_somados:
-
-                nome = f"{act.get('athlete', {}).get('firstname', 'Atleta')} {act.get('athlete', {}).get('lastname', '')}".strip()
-
-                dist_km = act.get('distance', 0) / 1000
-
-                alt = act.get('total_elevation_gain', 0)
+                firstname = act.get('athlete', {}).get('firstname', 'Atleta')
+                nome = f"{firstname} {lastname}".strip()
+                dist_km = dist / 1000.0
+                alt = act.get('total_elevation_gain', 0.0)
 
                 if dist_km > 0:
-
-                    if nome not in df_ranking.index: 
-
-                        # Inicializa KM Total, Altimetria e Treinos
-
+                    if nome not in df_ranking.index:
                         df_ranking.loc[nome] = [0.0, 0.0, 0]
 
-                    
-
                     df_ranking.at[nome, 'KM Total'] += dist_km
-
                     df_ranking.at[nome, 'Altimetria (m)'] += alt
-
-                    df_ranking.at[nome, 'Treinos'] = int(df_ranking.at[nome, 'Treinos']) + 1 # Incrementa o treino
-
+                    df_ranking.at[nome, 'Treinos'] = int(df_ranking.at[nome, 'Treinos']) + 1
                     ids_ja_somados.add(id_unico)
-
+else:
+    print("Erro: Não foi possível obter o access_token do Strava.")
 
 
 # 3. Ordenar e Salvar
