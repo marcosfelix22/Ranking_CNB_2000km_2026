@@ -116,55 +116,49 @@ else:
 
 
 
-# 2. Puxar novas atividades do Strava
+# 2. Puxar do Strava
+
 access_token = obter_access_token()
 
 if access_token:
-    headers = {'Authorization': f'Bearer {access_token}'}
-    
-    # Teste A: Verificar se a conta enxerga seus clubes e qual o ID correto
-    res_clubes = requests.get("https://www.strava.com/api/v3/athlete/clubs", headers=headers)
-    print(f"--- DIAGNÓSTICO DE CLUBES DA CONTA ---")
-    if res_clubes.status_code == 200:
-        clubes = res_clubes.json()
-        print("Clubes vinculados à sua conta:")
-        for c in clubes:
-            print(f"  -> Nome: {c.get('name')} | ID REAL: {c.get('id')}")
-    else:
-        print(f"Erro ao listar clubes do atleta: {res_clubes.status_code} - {res_clubes.text}")
 
-    # Teste B: Tentar consultar as atividades do clube configurado
-    print(f"\n--- CONSULTANDO ATIVIDADES DO CLUBE {CLUB_ID} ---")
-    url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
-    resposta = requests.get(url, headers=headers, params={'per_page': 200, 'page': 1})
-    
-    if resposta.status_code == 200:
-        atividades = resposta.json()
-        print(f"Sucesso! Atividades encontradas: {len(atividades)}")
+    for pagina in range(1, 11):
+
+        url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
+
+        atividades = requests.get(url, headers={'Authorization': f'Bearer {access_token}'}, params={'per_page': 200, 'page': pagina}).json()
+
+        if not atividades or 'errors' in atividades or len(atividades) == 0: break
+
         for act in atividades:
-            dist = act.get('distance', 0)
-            elapsed = act.get('elapsed_time', 0)
-            lastname = act.get('athlete', {}).get('lastname', '')
-            id_unico = f"{dist}_{elapsed}_{lastname}"
+
+            id_unico = f"{act.get('distance')}_{act.get('elapsed_time')}_{act.get('athlete', {}).get('lastname')}"
 
             if id_unico not in ids_ja_somados:
-                firstname = act.get('athlete', {}).get('firstname', 'Atleta')
-                nome = f"{firstname} {lastname}".strip()
-                dist_km = dist / 1000.0
-                alt = act.get('total_elevation_gain', 0.0)
+
+                nome = f"{act.get('athlete', {}).get('firstname', 'Atleta')} {act.get('athlete', {}).get('lastname', '')}".strip()
+
+                dist_km = act.get('distance', 0) / 1000
+
+                alt = act.get('total_elevation_gain', 0)
 
                 if dist_km > 0:
-                    if nome not in df_ranking.index:
+
+                    if nome not in df_ranking.index: 
+
+                        # Inicializa KM Total, Altimetria e Treinos
+
                         df_ranking.loc[nome] = [0.0, 0.0, 0]
 
+                    
+
                     df_ranking.at[nome, 'KM Total'] += dist_km
+
                     df_ranking.at[nome, 'Altimetria (m)'] += alt
-                    df_ranking.at[nome, 'Treinos'] = int(df_ranking.at[nome, 'Treinos']) + 1
+
+                    df_ranking.at[nome, 'Treinos'] = int(df_ranking.at[nome, 'Treinos']) + 1 # Incrementa o treino
+
                     ids_ja_somados.add(id_unico)
-    else:
-        print(f"Erro na API do Strava (Status {resposta.status_code}): {resposta.text}")
-else:
-    print("Erro: Falha ao obter access_token do Strava.")
 
 
 
