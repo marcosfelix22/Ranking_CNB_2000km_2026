@@ -16,18 +16,29 @@ ATLETAS = {
 
 def obter_access_token(refresh_token):
     if not refresh_token:
+        print("❌ Erro: refresh_token veio vazio ou não foi lido do Secret.")
         return None
+    
     payload = {
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
         'refresh_token': refresh_token,
         'grant_type': 'refresh_token'
     }
+    
     try:
-        res = requests.post("https://www.strava.com/oauth/token", data=payload).json()
-        return res.get('access_token')
+        res = requests.post("https://www.strava.com/oauth/token", data=payload)
+        print(f"--- DIAGNÓSTICO STRAVA ---")
+        print(f"Status HTTP: {res.status_code}")
+        print(f"Resposta Completa: {res.text}")
+        print(f"---------------------------")
+        
+        if res.status_code == 200:
+            return res.json().get('access_token')
+        else:
+            return None
     except Exception as e:
-        print(f"Erro ao renovar token: {e}")
+        print(f"Erro na requisição: {e}")
         return None
 
 def formatar_km(valor):
