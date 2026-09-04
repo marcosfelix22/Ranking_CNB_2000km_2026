@@ -1,40 +1,44 @@
-name: Atualizar Ranking CNB 2026
+name: "Atualizar Ranking CNB 2000 km Automático"
 
 on:
   schedule:
-    - cron: '0 * * * *' # Executa a cada hora
-  workflow_dispatch: 
+    - cron: '0 * * * *' # Roda uma vez por hora (no minuto 0)
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Baixar código
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Instalar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
-      - name: Install libs
+      - name: Instalar bibliotecas
         run: pip install requests pandas openpyxl
 
-      - name: Run Script
+      - name: Executar robô
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-          TOKEN_MARCOS: ${{ secrets.TOKEN_MARCOS }}
-          # Mapeie novos tokens abaixo conforme adicionar novos atletas:
-          # TOKEN_NOVO_ATLETA: ${{ secrets.TOKEN_NOVO_ATLETA }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: python ranking.py
 
-      - name: Save Result
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Salvar planilha atualizada
         run: |
-          git config --global user.name "Robo CNB 2k"
+          git config --global user.name "Robo CNB"
           git config --global user.email "bot@github.com"
-          git add Ranking_CNB_2026.xlsx
-          git diff --quiet && git diff --staged --quiet || git commit -m "Ranking CNB 2026 atualizado"
-          git push origin HEAD:main
+          
+          git add Ranking_CNB_2000km_2026.xlsx
+          
+          # Garante o commit apenas se houver alterações
+          git diff --quiet && git diff --staged --quiet || git commit -m "Ranking updated"
+          
+          # Puxa modificações remotas com rebase antes do push para não dar erro
+          git pull origin main --rebase
+          
+          git push origin main
